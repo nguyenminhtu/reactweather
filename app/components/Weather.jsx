@@ -2,6 +2,7 @@ var React = require('react');
 var WeatherForm = require('WeatherForm');
 var WeatherMessage = require('WeatherMessage');
 var openWeatherMap = require('openWeatherMap');
+var ErrorModal = require('ErrorModal');
 
 var Weather = React.createClass({
     getInitialState: function () {
@@ -12,7 +13,12 @@ var Weather = React.createClass({
     handleSearch: function (location) {
         var that = this;
 
-        this.setState({isLoading: true});
+        this.setState({
+            isLoading: true,
+            errorMessage: undefined,
+            location: undefined,
+            temp: undefined
+        });
 
         openWeatherMap.getTemp(location).then(function (temp) {
             that.setState({
@@ -20,13 +26,31 @@ var Weather = React.createClass({
                 temp: temp,
                 isLoading: false
             });
-        }, function (errorMessage) {
-            that.setState({isLoading: false});
-            alert(errorMessage);
+        }, function (e) {
+            that.setState({
+                isLoading: false,
+                errorMessage: "Error: City Not Found !"
+            });
         });
     },
+    componentDidMount: function () {
+        var location = this.props.location.query.location;
+
+        if (location && location.length > 0) {
+            this.handleSearch(location);
+            window.location.hash = "#/";
+        }
+    },
+    componentWillReceiveProps: function (newProps) {
+        var location = newProps.location.query.location;
+
+        if (location && location.length > 0) {
+            this.handleSearch(location);
+            window.location.hash = "#/";
+        }
+    },
     render: function () {
-        var {isLoading, temp, location} = this.state;
+        var {isLoading, temp, location, errorMessage} = this.state;
 
         function renderMessage () {
             if (isLoading) {
@@ -36,12 +60,21 @@ var Weather = React.createClass({
             }
         }
 
+        function renderError () {
+            if (typeof errorMessage === 'string') {
+                return (
+                    <ErrorModal message={errorMessage} />
+                )
+            }
+        }
+
         return (
             <div>
-                <h2>Weather component</h2>
+                <h1 className="text-center subheader page-title">Get Weather</h1>
                 <WeatherForm onSearch={this.handleSearch}/>
                 <br />
                 {renderMessage()}
+                {renderError()}
             </div>
         );
     }
